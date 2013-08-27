@@ -1,0 +1,161 @@
+[General]
+Description=fishing
+BeginHotkey=121
+BeginHotkeyMod=0
+PauseHotkey=122
+PauseHotkeyMod=0
+StopHotkey=122
+StopHotkeyMod=0
+RunOnce=1
+EnableWindow=
+Enable=1
+AutoRun=0
+[Repeat]
+Type=1
+Number=1
+[Relative]
+SetupOCXFile=
+[Comment]
+Content=
+
+[Script]
+// ===================== 自动钓鱼 =====================
+//
+// 功能：开始自动钓鱼后，只要不动鼠标，可以正常打字聊天。无限循环，不会被踢下线。
+//
+// 步骤：
+// 1.运行在按键精灵7.3版本下是没问题的〜
+// 2.找一个安全的角落，正对水面，调整到第一视角，保证整个画面刚好都是水。参考图片。
+// 3.将钓鱼的快捷键设为 CTRL + 向下箭头。随便找个技能位置，然后绑定上快捷键，可以不影响打字聊天。
+// 4.按下F10开始。按下F12停止。
+// 5.在桌面上会生成一个fishing.txt文件，里面记录的是钓鱼成功的坐标。有兴趣可以看看自己钓了多少，请发给我做算法优化〜
+//
+// ===================== 自动钓鱼 =====================
+//
+// 分辨率设定
+Plugin scrX=Sys.GetScRX()
+Plugin scrY=Sys.GetScRY()
+// 钓鱼最多30s
+maxTime = 30 - 6
+While 1
+    // 开始钓鱼
+    Delay 1000
+    // 把钓鱼放到快捷键 CTRL + 向下箭头 ,不影响打字聊天
+    KeyDown 17,1
+    KeyPress 40,1
+    KeyUp 17,1
+    // 5秒以后开始找鱼漂
+    Delay 5000
+    //
+    // 找颜色的方案不靠谱：在顺光、逆光、白天、夜晚，红色会不一样
+    // VBSCall FindColorEx(0.25 * x,0.25 * y,0.75 * x, 0.75 * y,"0D277C",1,0.6,intX,intY)
+    intX = 0
+    intY = 0
+    // 搜索范围
+    y = 0.05 * scrY
+    x = 0.35 * scrX
+    Gosub findGearMouse
+    While y<= 0.65 * scrY
+        While x<= 0.65 * scrX
+            Gosub findGearMouse
+            MoveTo x y
+            x=x + 1
+            //搜索密度,可自行调整
+        EndWhile 
+        x= 0.35 * scrX
+        y= y + 30
+        //搜索密度,可自行调整
+    EndWhile 
+    //
+    // VB的GOTO太蛋疼了，REM是跳转标号：找到了之后
+    //
+    Rem findIt
+    // 如果找到了正确的位置
+    If intX > 1 and intY > 1
+        // 移到鱼漂上
+        // MoveTo intX,intY
+        //
+        // 等待鱼上钩，鱼漂会动
+        // 搜索范围细化到当前鼠标附近 1/8 全屏
+        startX = intX - 0.125 * scrX
+        startY = intY - 0.125 * scrY
+        endX = intX + 0.125 * scrX
+        endY = intY + 0.125 * scrY
+        // 开始时间
+        Plugin startTime = Sys.GetTime()
+        notDone = 1
+        While notDone
+            // 隔一段时间看一看
+            Delay 150
+            // 白色是鱼上钩的浪花
+            VBSCall FindColorEx(startX, startY, endX, endY, "ffffff", 1, 0.9,whiteX,whiteY)
+            If whiteX > 1 and whiteY > 1
+                // 拾取
+                // 按住shift+右键
+                Delay 400
+                KeyDown 16,1
+                RightClick 1
+                KeyUp 16,1
+                // 结束了
+                notDone = 0
+                // 等待拾取
+                Delay 2000
+                Gosub record
+            EndIf 
+            // 时间超时
+            Plugin nowTime = Sys.GetTime()
+            If (nowTime - startTime > maxTime * 1000)
+                notDone = 0
+            EndIf 
+        EndWhile 
+    EndIf 
+    // 防止被认为是机器人，跳一下
+    Delay 1000
+    KeyPress 32,1
+    Delay 1000
+EndWhile 
+//
+// 找到鼠标位置
+//
+Sub findGearMouse
+    // 正常鼠标形状
+    Shape1 = 965986689
+    // 齿轮鼠标形状
+    Shape2 = 1884068285
+    VBSCall Shape=GetCursorShape(0)
+    If shape = Shape1
+        //MessageBox 当前鼠标形状是普通的WINDOWS鼠标
+    ElseIf shape = Shape2
+        //MessageBox 当前鼠标形状是手型鼠标
+        //intX = x
+        //intY = y
+        VBSCall GetCursorPos(intX, intY)
+        Goto findIt
+        //Else
+        //  MessageBox 不认识当前鼠标形状！
+    EndIf 
+Return 
+//
+// 记录鼠标位置，做优化分析
+//
+Sub record
+    set objShell = CreateObject("WScript.Shell")
+    desk = objShell.SpecialFolders.Item("desktop")
+    //↑取得桌面路径
+    set fso=CreateObject("Scripting.FileSystemObject")
+    const forreading=1
+    const forwriting=2
+    const forappending=8
+    If fso.FileExists(desk&"\fishing.txt")=0
+        set myfile=fso.createtextfile(desk&"\fishing.txt")
+        //Else
+        //    set myfile=fso.opentextfile(desk&"\fishing.txt",forreading)
+        //    myfile.Close
+    EndIf 
+    set myfile=fso.opentextfile(desk&"\fishing.txt",forappending)
+    //↑写一个TXT到桌面
+    //↑上面就是写进TXT的测试结果
+    myfile.writeline(whiteX&","&whiteY)
+    //↑上面就是写进TXT的找到的点坐标
+    myfile.Close
+Return 
