@@ -17,7 +17,7 @@
   }
   #screen circle {
     fill: blue;
-    opacity: 0.1;
+    opacity: 0.15;
   }
   </style>
   </head>
@@ -29,19 +29,19 @@
 function callback(dataset){
     var w = 1366;
     var h = 768;
-    var r = 10;
-    var padding = 20;
+    var r = 3;
+    // var padding = 10;
     var chart = d3.select("#chart")
             .append("svg")
             .attr("id", "screen")
             .attr("width", w)
             .attr("height", h);
-    
+
     /*
     var xScale = d3.scale.linear()
             .domain([0, d3.max(dataset, function(d) { return d[0]; })])
             .range([padding, w - padding * 2]);//x轴
- 
+
     var yScale = d3.scale.linear()
             .domain([0, d3.max(dataset, function(d) { return d[1]; })])
             .range([h - padding, padding]);//y轴
